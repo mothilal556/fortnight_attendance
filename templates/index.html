@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FortNight Attendance Sheets</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+  <header class="app-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 3.75h9l5 5v11.5H5z" />
+            <path d="M14 3.75v5h5M8 12h8M8 15.5h8M8 19h5" />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <span class="brand-title">FortNight Attendance</span>
+          <span class="brand-subtitle">Subject-wise workbook generator</span>
+        </span>
+      </a>
+      <span class="status-pill"><span class="status-dot"></span> READY TO PROCESS</span>
+    </div>
+  </header>
+  <nav class="container project-tabs" aria-label="Attendance tools">
+    <a class="project-tab active" href="{{ url_for('index') }}" aria-current="page">Fortnight Attendance</a>
+    <a class="project-tab" href="/consolidated/">Consolidated Report</a>
+  </nav>
+
+  <main class="container main-content flex-grow-1">
+    <section class="main-card">
+      <div class="card-heading">
+        <div class="heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v4A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-4" />
+          </svg>
+        </div>
+        <div>
+          <h1>Build your attendance workbook</h1>
+          <p>Upload your Excel data and set the academic details for your sheets.</p>
+        </div>
+        <span class="file-limit">MAX FILE SIZE <strong>20 MB</strong></span>
+      </div>
+
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form id="attendance-form" method="post" enctype="multipart/form-data">
+          <section class="upload-section" aria-labelledby="upload-heading">
+            <div class="section-heading">
+              <div>
+                <h2 id="upload-heading">Upload Excel workbook</h2>
+                <p>Choose your source file to generate subject-wise attendance sheets.</p>
+              </div>
+              <span class="format-tag">.XLSX</span>
+            </div>
+            <label class="dropzone" id="dropzone" for="excel_file">
+              <span class="upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v4A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-4" />
+                </svg>
+              </span>
+              <span class="dropzone-title" id="file-label">Click to select or drag and drop your workbook</span>
+              <span class="dropzone-hint">Excel workbook (.xlsx) · Up to 20 MB</span>
+              <input class="dropzone-input" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xlsm" required>
+            </label>
+            <div class="template-link"><span>Need a reference?</span> <a href="{{ url_for('sample_template') }}">Download SampleTemplate.xlsx</a></div>
+          <details class="requirements">
+            <summary>Required source columns</summary>
+            <div class="requirements-content">
+              <code>HTNO, SUBJECTCODE, SUBJECTNAME, SUBJECTTYPE, FORTNIGHT, FORTNIGHT_START_DATE, FORTNIGHT_END_DATE</code>
+              <p>Date headers may also be named From_date and To_date. Every subject worksheet includes all uploaded HTNOs for each available fortnight and date range.</p>
+            </div>
+          </details>
+          </section>
+
+          <section class="details-section" aria-labelledby="details-heading">
+            <div class="section-heading details-heading">
+              <div>
+                <h2 id="details-heading">Academic details</h2>
+                <p>These details will be included in each generated worksheet.</p>
+              </div>
+            </div>
+            <div class="details-grid">
+              <div class="field">
+                <label for="degree" class="form-label">Degree <span>*</span></label>
+                <input class="form-control" id="degree" name="degree" required maxlength="50" placeholder="e.g., B.Tech" value="BTECH">
+              </div>
+              <div class="field">
+                <label for="college_code" class="form-label">College code <span>*</span></label>
+                <input class="form-control" id="college_code" name="college_code" required maxlength="50" placeholder="Enter college code" value="D4">
+              </div>
+              <div class="field">
+                <label for="branch_code" class="form-label">Branch code <span>*</span></label>
+                <input class="form-control" id="branch_code" name="branch_code" required maxlength="50" placeholder="e.g., CSE" value="5">
+              </div>
+              <div class="field">
+                <label for="section" class="form-label">Section <span>*</span></label>
+                <input class="form-control" id="section" name="section" required maxlength="20" placeholder="e.g., A" value="B">
+              </div>
+              <div class="field">
+                <label for="regulation" class="form-label">Regulation <span>*</span></label>
+                <input class="form-control" id="regulation" name="regulation" required maxlength="30" placeholder="e.g., R23" value="BR-22">
+              </div>
+              <div class="field">
+                <label for="year" class="form-label">Year <span>*</span></label>
+                <input class="form-control" id="year" name="year" required maxlength="20" placeholder="e.g., II" value="2">
+              </div>
+              <div class="field">
+                <label for="semester" class="form-label">Semester <span>*</span></label>
+                <input class="form-control" id="semester" name="semester" required maxlength="20" placeholder="e.g., I" value="2">
+              </div>
+            </div>
+          </section>
+
+          <section class="processing-status" id="processing-status" aria-live="polite" aria-atomic="true" hidden>
+            <div class="processing-status-heading">
+              <span id="processing-spinner" class="processing-spinner" aria-hidden="true"></span>
+              <div>
+                <p class="processing-title" id="processing-title">Uploading workbook</p>
+                <p class="processing-message" id="processing-message">Preparing your file for processing.</p>
+              </div>
+              <span class="processing-percent" id="processing-percent">0%</span>
+            </div>
+            <div
+              class="progress-track"
+              id="progress-track"
+              role="progressbar"
+              aria-label="Workbook progress; processing estimate after upload"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p class="progress-note">Upload progress is exact; processing progress is estimated until the workbook is ready.</p>
+          </section>
+
+          <button class="btn btn-primary generate-button" id="generate-button" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M13.5 2.75 5 13h6l-.5 8.25L19 11h-6z" />
+            </svg>
+            <span id="generate-button-label">Generate attendance workbook</span>
+          </button>
+        </form>
+      </section>
+      <p class="privacy-note">Your workbook is processed in memory and is not saved to a permanent upload folder.</p>
+    </div>
+  </main>
+  <footer class="app-footer">
+    <div class="container footer-inner">
+      <div class="footer-credit">
+        <span class="footer-code-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" />
+          </svg>
+        </span>
+        <span>Developed by <strong>Mothilal Tadiparthi</strong> - 2026</span>
+      </div>
+      <div class="footer-meta">
+        <span class="footer-speed">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M13.5 2.75 5 13h6l-.5 8.25L19 11h-6z" />
+          </svg>
+          Fast Processing
+        </span>
+      </div>
+    </div>
+  </footer>
+  <script>
+    const blobUploadsEnabled = {{ blob_uploads_enabled|tojson }};
+    const fileInput = document.getElementById("excel_file");
+    const dropzone = document.getElementById("dropzone");
+    const fileLabel = document.getElementById("file-label");
+    const form = document.getElementById("attendance-form");
+    const generateButton = document.getElementById("generate-button");
+    const generateButtonLabel = document.getElementById("generate-button-label");
+    const processingStatus = document.getElementById("processing-status");
+    const processingTitle = document.getElementById("processing-title");
+    const processingMessage = document.getElementById("processing-message");
+    const processingPercent = document.getElementById("processing-percent");
+    const processingSpinner = document.getElementById("processing-spinner");
+    const progressTrack = document.getElementById("progress-track");
+    const progressFill = document.getElementById("progress-fill");
+    let currentProgress = 0;
+    let processingTimer;
+
+    function setProgress(percent) {
+      const progress = Math.max(0, Math.min(100, Math.round(percent)));
+      currentProgress = progress;
+      progressFill.style.width = `${progress}%`;
+      progressTrack.setAttribute("aria-valuenow", String(progress));
+      processingPercent.textContent = `${progress}%`;
+    }
+
+    function showProcessingError(message) {
+      window.clearInterval(processingTimer);
+      processingStatus.classList.add("has-error");
+      processingSpinner.hidden = true;
+      processingTitle.textContent = "Could not generate workbook";
+      processingMessage.replaceChildren();
+      String(message || "").split(/\r?\n/).forEach((line, index) => {
+        if (index > 0) processingMessage.appendChild(document.createElement("br"));
+        processingMessage.appendChild(document.createTextNode(line));
+      });
+      processingPercent.textContent = `${currentProgress}%`;
+      generateButton.disabled = false;
+      generateButtonLabel.textContent = "Try again";
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+
+      processingStatus.hidden = false;
+      processingStatus.classList.remove("has-error", "is-complete");
+      processingSpinner.hidden = false;
+      processingTitle.textContent = "Uploading workbook";
+      processingMessage.textContent = "Sending your Excel file to the server.";
+      progressTrack.classList.remove("is-indeterminate");
+      window.clearInterval(processingTimer);
+      setProgress(0);
+      generateButton.disabled = true;
+      generateButtonLabel.textContent = "Uploading workbook...";
+      processingStatus.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+      let blobPathname = "";
+      if (blobUploadsEnabled) {
+        processingTitle.textContent = "Uploading workbook";
+        processingMessage.textContent = "Uploading your workbook securely to temporary storage...";
+        progressTrack.classList.add("is-indeterminate");
+        setProgress(5);
+        try {
+          const { upload } = await import("https://esm.sh/@vercel/blob@2.8.2/client");
+          const uploadedBlob = await upload(`uploads/${fileInput.files[0].name}`, fileInput.files[0], {
+            access: "private",
+            handleUploadUrl: "/api/blob-upload",
+          });
+          blobPathname = uploadedBlob.pathname;
+          progressTrack.classList.remove("is-indeterminate");
+          setProgress(25);
+        } catch (error) {
+          showProcessingError(error.message || "Could not upload the workbook to secure storage.");
+          return;
+        }
+      }
+
+      const request = new XMLHttpRequest();
+      request.open("POST", form.action || window.location.pathname);
+      request.responseType = "blob";
+
+      request.upload.addEventListener("progress", (progressEvent) => {
+        if (blobPathname) {
+          if (progressEvent.loaded < progressEvent.total) return;
+          if (processingTimer) return;
+          setProgress(25);
+          processingTitle.textContent = "Generating attendance sheets";
+          processingMessage.textContent = "Upload complete. Reading records and building subject worksheets...";
+          const processingStartedAt = Date.now();
+          processingTimer = window.setInterval(() => {
+            const elapsedSeconds = (Date.now() - processingStartedAt) / 1000;
+            setProgress(Math.min(95, 25 + 70 * (1 - Math.exp(-elapsedSeconds / 15))));
+          }, 250);
+          generateButtonLabel.textContent = "Generating workbook...";
+          return;
+        }
+        if (!progressEvent.lengthComputable) return;
+        if (progressEvent.loaded < progressEvent.total) {
+          setProgress((progressEvent.loaded / progressEvent.total) * 25);
+          return;
+        }
+
+        if (processingTimer) return;
+        setProgress(25);
+        processingTitle.textContent = "Generating attendance sheets";
+        processingMessage.textContent = "Upload complete. Reading records and building subject worksheets...";
+        const processingStartedAt = Date.now();
+        processingTimer = window.setInterval(() => {
+          const elapsedSeconds = (Date.now() - processingStartedAt) / 1000;
+          const estimatedProgress = 25 + 70 * (1 - Math.exp(-elapsedSeconds / 15));
+          setProgress(Math.min(95, estimatedProgress));
+        }, 250);
+        generateButtonLabel.textContent = "Generating workbook...";
+      });
+
+      request.addEventListener("load", async () => {
+        window.clearInterval(processingTimer);
+        const contentType = request.getResponseHeader("Content-Type") || "";
+        const disposition = request.getResponseHeader("Content-Disposition") || "";
+        if (request.status >= 200 && request.status < 300 && contentType.includes("spreadsheetml")) {
+          const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+          const downloadUrl = URL.createObjectURL(request.response);
+          const downloadLink = document.createElement("a");
+          downloadLink.href = downloadUrl;
+          downloadLink.download = filenameMatch ? filenameMatch[1] : "Fortnight_Attendance.xlsx";
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          downloadLink.remove();
+          window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+          processingStatus.classList.add("is-complete");
+          processingSpinner.hidden = true;
+          processingTitle.textContent = "Workbook ready";
+          processingMessage.textContent = "Your attendance workbook has been generated and downloaded.";
+          setProgress(100);
+          generateButton.disabled = false;
+          generateButtonLabel.textContent = "Generate another workbook";
+          return;
+        }
+
+        let message = `The server could not process the workbook (HTTP ${request.status}).`;
+        try {
+          const responseText = await request.response.text();
+          if (responseText) {
+            try {
+              const parsed = JSON.parse(responseText);
+              if (parsed.error) message = parsed.error;
+              else if (parsed.message) message = parsed.message;
+            } catch {
+              const responseDocument = new DOMParser().parseFromString(responseText, "text/html");
+              const alert = responseDocument.querySelector(".alert");
+              if (alert) message = alert.textContent.trim();
+            }
+          }
+        } catch {
+          // Keep the explicit HTTP error when the response is not readable.
+        }
+        showProcessingError(message);
+      });
+
+      request.addEventListener("error", () => {
+        window.clearInterval(processingTimer);
+        showProcessingError("Network error while sending the workbook. Check your connection and try again.");
+      });
+
+      request.addEventListener("abort", () => {
+        window.clearInterval(processingTimer);
+        showProcessingError("The upload was cancelled. You can try again.");
+      });
+
+      const formData = new FormData(form);
+      if (blobPathname) {
+        formData.delete("excel_file");
+        formData.append("blob_pathname", blobPathname);
+      }
+      request.send(formData);
+    });
+
+    fileInput.addEventListener("change", () => {
+      fileLabel.textContent = fileInput.files.length
+        ? fileInput.files[0].name
+        : "Click to select or drag and drop your workbook";
+      dropzone.classList.toggle("has-file", fileInput.files.length > 0);
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.add("is-dragging");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("is-dragging");
+      });
+    });
+
+    dropzone.addEventListener("drop", (event) => {
+      if (event.dataTransfer.files.length) {
+        fileInput.files = event.dataTransfer.files;
+        fileInput.dispatchEvent(new Event("change"));
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
