@@ -42,7 +42,7 @@
           <h1>Build your attendance workbook</h1>
           <p>Upload your Excel data and set the academic details for your sheets.</p>
         </div>
-        <span class="file-limit">MAX FILE SIZE <strong>20 MB</strong></span>
+        <span class="file-limit">MAX FILE SIZE <strong>{{ upload_limit_mb }} MB</strong></span>
       </div>
 
       <div class="card-body">
@@ -73,7 +73,7 @@
                 </svg>
               </span>
               <span class="dropzone-title" id="file-label">Click to select or drag and drop your workbook</span>
-              <span class="dropzone-hint">Excel workbook (.xlsx) · Up to 20 MB</span>
+              <span class="dropzone-hint">Excel workbook (.xlsx) · Up to {{ upload_limit_mb }} MB</span>
               <input class="dropzone-input" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xlsm" required>
             </label>
             <div class="template-link"><span>Need a reference?</span> <a href="{{ url_for('sample_template') }}">Download SampleTemplate.xlsx</a></div>

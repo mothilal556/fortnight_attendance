@@ -115,7 +115,7 @@
                         </h2>
                         <p class="text-xs text-slate-400 mt-1">Select a multi-sheet Excel file (.xlsx, .xls) to consolidate all subject sheets.</p>
                     </div>
-                    <span class="text-xs font-mono-code text-slate-500 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">MAX FILE: {% if blob_uploads_enabled %}20MB{% else %}16MB{% endif %}</span>
+                    <span class="text-xs font-mono-code text-slate-500 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">MAX FILE: {{ upload_limit_mb }}MB</span>
                 </div>
 
                 <form id="uploadForm" class="space-y-6">

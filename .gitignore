@@ -7,3 +7,5 @@ node_modules/
 .env
 II-II-C-FORTNIGHT.xlsx
 instance/
+
+.vercel

@@ -6,7 +6,7 @@ import pandas as pd
 import openpyxl
 from io import BytesIO
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from flask import Flask, abort, render_template, request, send_file, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, send_file, jsonify, url_for
 from blob_storage import delete_blob, download_private_blob, upload_private_blob
 
 app = Flask(__name__, template_folder='../templates')
@@ -18,36 +18,23 @@ app.config.update(
 )
 UPLOAD_FOLDER = tempfile.gettempdir()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max limit
+app.config['MAX_CONTENT_LENGTH'] = (
+    20 * 1024 * 1024
+    if not os.environ.get("VERCEL") or os.environ.get("BLOB_READ_WRITE_TOKEN")
+    else 4 * 1024 * 1024
+)
 
 
 def blob_uploads_enabled():
     return bool(os.environ.get("VERCEL") and os.environ.get("BLOB_READ_WRITE_TOKEN"))
 
 
-@app.before_request
-def require_shared_password():
-    if os.environ.get("VERCEL"):
-        if not os.environ.get("APP_ACCESS_PASSWORD"):
-            abort(503, description="Set APP_ACCESS_PASSWORD in the Vercel project environment.")
-        if not os.environ.get("FLASK_SECRET_KEY"):
-            abort(503, description="Set FLASK_SECRET_KEY in the Vercel project environment.")
-        if not blob_uploads_enabled():
-            abort(503, description="Connect a Vercel Blob store and set BLOB_READ_WRITE_TOKEN.")
-    if not os.environ.get("APP_ACCESS_PASSWORD"):
-        return
-    if request.path.startswith("/static/"):
-        return
-    if session.get("authenticated"):
-        return
-    if request.path.endswith("/process") or request.is_json:
-        return jsonify({"error": "Sign in before using the attendance tools."}), 401
-    return redirect("/login")
-
-
 @app.context_processor
 def inject_blob_upload_setting():
-    return {"blob_uploads_enabled": blob_uploads_enabled()}
+    return {
+        "blob_uploads_enabled": blob_uploads_enabled(),
+        "upload_limit_mb": app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024),
+    }
 
 
 def validate_sheet_attendance(df, sheet_name, conducted_col, attended_col):

@@ -1,11 +1,10 @@
 import os
 import re
-import hmac
 from io import BytesIO
 from datetime import datetime
 
 import pandas as pd
-from flask import Flask, abort, jsonify, render_template, request, send_file, flash, redirect, url_for, session
+from flask import Flask, render_template, request, send_file, flash, redirect, url_for
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from openpyxl.styles import Font, Border, Side
@@ -19,66 +18,24 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=bool(os.environ.get("VERCEL")),
 )
-app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB
+app.config["MAX_CONTENT_LENGTH"] = (
+    20 * 1024 * 1024
+    if not os.environ.get("VERCEL") or os.environ.get("BLOB_READ_WRITE_TOKEN")
+    else 4 * 1024 * 1024
+)
 
 
 def blob_uploads_enabled():
     return bool(os.environ.get("VERCEL") and os.environ.get("BLOB_READ_WRITE_TOKEN"))
 
 
-@app.before_request
-def require_shared_password():
-    if os.environ.get("VERCEL"):
-        if not os.environ.get("APP_ACCESS_PASSWORD"):
-            abort(503, description="Set APP_ACCESS_PASSWORD in the Vercel project environment.")
-        if not os.environ.get("FLASK_SECRET_KEY"):
-            abort(503, description="Set FLASK_SECRET_KEY in the Vercel project environment.")
-        if not blob_uploads_enabled():
-            abort(503, description="Connect a Vercel Blob store and set BLOB_READ_WRITE_TOKEN.")
-    if not os.environ.get("APP_ACCESS_PASSWORD"):
-        return
-    if request.endpoint in {"login", "upload_auth"} or request.path.startswith("/static/"):
-        return
-    if session.get("authenticated"):
-        return
-    if request.path == "/process" or request.is_json:
-        return jsonify({"error": "Sign in before using the attendance tools."}), 401
-    return redirect(url_for("login"))
-
-
 @app.context_processor
 def inject_blob_upload_setting():
-    return {"blob_uploads_enabled": blob_uploads_enabled()}
+    return {
+        "blob_uploads_enabled": blob_uploads_enabled(),
+        "upload_limit_mb": app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024),
+    }
 
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    configured_password = os.environ.get("APP_ACCESS_PASSWORD")
-    if not configured_password:
-        abort(503, description="Set APP_ACCESS_PASSWORD to enable sign-in.")
-
-    error = None
-    if request.method == "POST":
-        supplied_password = request.form.get("password", "")
-        if hmac.compare_digest(supplied_password, configured_password):
-            session["authenticated"] = True
-            return redirect(url_for("index"))
-        error = "The password was not accepted."
-
-    return render_template("login.html", error=error)
-
-
-@app.route("/logout", methods=["POST"])
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
-
-
-@app.route("/__upload-auth")
-def upload_auth():
-    if session.get("authenticated") and os.environ.get("APP_ACCESS_PASSWORD"):
-        return "", 204
-    return "", 401
 
 REQUIRED_COLUMNS = [
     "HTNO", "SUBJECTCODE", "SUBJECTNAME", "SUBJECTTYPE",
@@ -387,7 +344,10 @@ def sample_template():
 
 @app.errorhandler(413)
 def file_too_large(_error):
-    flash("File is too large. Maximum upload size is 20 MB.", "danger")
+    flash(
+        f"File is too large. Maximum upload size is {app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)} MB.",
+        "danger",
+    )
     return redirect(url_for("index"))
 
 

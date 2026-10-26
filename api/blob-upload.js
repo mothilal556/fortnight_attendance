@@ -32,11 +32,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  const host = process.env.VERCEL_URL;
-  if (!host) {
-    res.status(503).json({ error: "Vercel deployment host is not configured." });
-    return;
-  }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     res.status(503).json({ error: "Connect a Vercel Blob store before uploading workbooks." });
     return;
@@ -47,13 +42,6 @@ export default async function handler(req, res) {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname) => {
-        const authResponse = await fetch(`https://${host}/__upload-auth`, {
-          headers: { cookie: req.headers.cookie || "" },
-        });
-        if (!authResponse.ok) {
-          throw new Error("Please sign in before uploading a workbook.");
-        }
-
         if (!pathname.startsWith("uploads/")) {
           throw new Error("Workbooks must be uploaded under the uploads path.");
         }

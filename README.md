@@ -51,18 +51,18 @@ The column names are case-insensitive; leading/trailing spaces are removed. `Fro
 The downloaded workbook contains one worksheet per subject. Each worksheet has the columns `DEGREE`, `COLLEGECODE`, `HTNO`, `BRANCHCODE`, `SECTION`, `REGULATION`, `YEAR`, `SEMESTER`, `SUBJECTCODE`, `SUBJECTNAME`, `SUBJECTTYPE`, `FORTNIGHT`, `CLASSESCONDUCTED`, `CLASSESATTENDED`, `FORTNIGHT_START_DATE`, and `FORTNIGHT_END_DATE`.
 
 ## Production notes
-- Vercel deployment uses the Python runtime and Vercel Functions. Uploads are sent directly to a private Vercel Blob store; temporary report files are only kept during a single function invocation.
-- Connect a **private** Vercel Blob store to the project and ensure Vercel provides `BLOB_READ_WRITE_TOKEN` for browser uploads and server-side file handling.
-- Configure `APP_ACCESS_PASSWORD` with a strong shared password and `FLASK_SECRET_KEY` with a separate long, random secret in the Vercel project environment. Both are required on Vercel, and the shared password protects both attendance tools and upload-token generation.
+- Vercel deployment uses the Python runtime and Vercel Functions. When configured, uploads use a private Vercel Blob store; temporary report files are only kept during a single function invocation.
+- Connect a **private** Vercel Blob store to the project and ensure Vercel provides `BLOB_READ_WRITE_TOKEN` for direct uploads up to 20 MB. Without Blob, the app remains available and accepts uploads up to 4 MB to stay below Vercel's request-body limit.
+- Set `FLASK_SECRET_KEY` to a long, random secret in the Vercel project environment so Flask's signed flash-message cookies remain consistent across function instances.
 - Import the project from its Git repository in Vercel and deploy from the repository root. Vercel installs Python dependencies from `requirements.txt` and the upload handler dependency from `package.json`.
 - The main attendance workbook is returned immediately after processing. Consolidated reports are stored privately in Blob storage and removed when downloaded.
-- The application has no individual user accounts. Anyone who knows the shared password can access uploaded student workbooks, so use a unique password and rotate it when access changes.
+- The application has no authentication. Anyone can use the tools and request upload tokens, so the public Blob upload endpoint may incur storage or processing costs. Keep the upload size and Excel file-type restrictions in place, monitor usage, and use Vercel access controls if the app or student data should not be public.
 
 ### Deploy on Vercel
 1. Push this project to a GitHub repository, then import that repository into Vercel with the project root as the root directory.
-2. In Vercel Storage, create a **private** Blob store and connect it to this project. Confirm `BLOB_READ_WRITE_TOKEN` is available in the project's environment variables.
-3. Add `APP_ACCESS_PASSWORD` and `FLASK_SECRET_KEY` for the Production environment (and Preview if needed). Use a strong password and a separate random secret.
-4. Deploy or redeploy. Open the deployment URL and sign in with `APP_ACCESS_PASSWORD`.
+2. Optionally, in Vercel Storage, create a **private** Blob store and connect it to this project. Confirm `BLOB_READ_WRITE_TOKEN` is available to enable uploads up to 20 MB.
+3. Add `FLASK_SECRET_KEY` for the Production environment (and Preview if needed). Generate a long random value.
+4. Deploy or redeploy. Without Blob configured, the app still runs with the 4 MB upload limit.
 
 To create a random Flask secret locally, run:
 
